@@ -368,9 +368,11 @@ class RansomNotePage extends StatefulWidget {
   _RansomNotePageState createState() => _RansomNotePageState();
 }
 
+
 class _RansomNotePageState extends State<RansomNotePage> {
-  final int _timeLeft = 60;
+  int _timeLeft = 60;
   final TextEditingController _passkeyController = TextEditingController();
+  late Timer _timer;
 
   @override
   void initState() {
@@ -379,6 +381,18 @@ class _RansomNotePageState extends State<RansomNotePage> {
   }
 
   void _startCountdown() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    if (mounted) {
+      setState(() {
+        if (_timeLeft > 0) {
+          _timeLeft--;
+        } else {
+          timer.cancel();
+          _showDeletionDialog();
+        }
+      });
+    }
+  });
   }
 
   void _checkPasskey() {
@@ -408,6 +422,22 @@ class _RansomNotePageState extends State<RansomNotePage> {
     );
   }
 
+  void _showDeletionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Files Deleted'),
+        content: Text('Time is up! Your files have been permanently deleted.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _simulateBackup() {
     showDialog(
