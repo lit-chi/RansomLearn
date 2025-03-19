@@ -369,7 +369,7 @@ class RansomNotePage extends StatefulWidget {
 }
 
 class _RansomNotePageState extends State<RansomNotePage> {
-  int _timeLeft = 60;
+  final int _timeLeft = 60;
   final TextEditingController _passkeyController = TextEditingController();
 
   @override
@@ -408,22 +408,6 @@ class _RansomNotePageState extends State<RansomNotePage> {
     );
   }
 
-  void _showDeletionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('Files Deleted'),
-        content: Text('Time is up! Your files have been permanently deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _simulateBackup() {
     showDialog(
