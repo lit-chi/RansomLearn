@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(RansomLearnApp());
@@ -86,6 +88,9 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
+
+
+
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
 
@@ -95,9 +100,11 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   bool isLogin = true;
+
+  // Add controllers for input fields
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   void toggleForm() {
     setState(() {
@@ -112,32 +119,54 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  void _signupAndReturnToLogin() {
+  Future<void> _signupAndReturnToLogin() async {
     if (!isLogin && passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Passwords do not match.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    if (!isLogin) {
+
+    final url = Uri.parse('http://localhost:5000/${isLogin ? "login" : "signup"}');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": emailController.text, "password": passwordController.text}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Signed up successfully. Please login.'),
-          backgroundColor: Colors.green,
-        ),
+        SnackBar(content: Text(data["message"]), backgroundColor: Colors.green),
       );
-      setState(() {
-        isLogin = true;
-      });
+
+      if (isLogin) {
+        navigateToEmailPage(); // Move to the next screen after login
+      } else {
+        setState(() {
+          isLogin = true; // Switch to login page after signup
+        });
+      }
     } else {
-      navigateToEmailPage();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data["error"]), backgroundColor: Colors.red),
+      );
     }
   }
 
   @override
+  void dispose() {
+    // Dispose controllers to free memory
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
@@ -168,6 +197,7 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   SizedBox(height: 20),
                   TextField(
+                    controller: emailController,
                     decoration: InputDecoration(
                       labelText: 'Email',
                       labelStyle: TextStyle(color: Colors.white),
@@ -176,21 +206,21 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   TextField(
                     controller: passwordController,
+                    obscureText: true,
                     decoration: InputDecoration(
                       labelText: 'Password',
                       labelStyle: TextStyle(color: Colors.white),
                     ),
-                    obscureText: true,
                     style: TextStyle(color: Colors.white),
                   ),
                   if (!isLogin)
                     TextField(
                       controller: confirmPasswordController,
+                      obscureText: true,
                       decoration: InputDecoration(
                         labelText: 'Confirm Password',
                         labelStyle: TextStyle(color: Colors.white),
                       ),
-                      obscureText: true,
                       style: TextStyle(color: Colors.white),
                     ),
                   SizedBox(height: 20),
@@ -198,8 +228,7 @@ class _AuthPageState extends State<AuthPage> {
                     onPressed: _signupAndReturnToLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
-                      padding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
                     ),
                     child: Text(isLogin ? 'Login' : 'Signup'),
                   ),
@@ -221,6 +250,8 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 }
+  
+
 
 class EmailPage extends StatefulWidget {
   const EmailPage({super.key});
