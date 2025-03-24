@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:ransom_learn/file_manager.dart';
 import 'dart:convert';
+
+
 
 void main() {
   runApp(RansomLearnApp());
@@ -146,6 +149,7 @@ class _AuthPageState extends State<AuthPage> {
 
       if (isLogin) {
         navigateToEmailPage(); // Move to the next screen after login
+        setupRansomLearnEnvironment();
       } else {
         setState(() {
           isLogin = true; // Switch to login page after signup
@@ -261,6 +265,48 @@ class EmailPage extends StatefulWidget {
 }
 
 class _EmailPageState extends State<EmailPage> {
+  final TextEditingController _emailController = TextEditingController();
+  bool _isSending = false;
+
+  Future<void> sendPhishingEmail() async {
+    if (_emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter an email address')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSending = true;
+    });
+
+    final url = Uri.parse('http://localhost:5000/send-email'); // Adjust if needed
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": _emailController.text}),
+    );
+
+    setState(() {
+      _isSending = false;
+    });
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Phishing email sent successfully!')),
+      );
+      // Navigate to RansomNotePage AFTER email is sent
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => RansomNotePage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send email')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -310,6 +356,7 @@ class _EmailPageState extends State<EmailPage> {
                       ),
                       SizedBox(height: 20),
                       TextField(
+                        controller: _emailController,
                         decoration: InputDecoration(
                           labelText: 'Email',
                           labelStyle: TextStyle(color: Colors.white),
@@ -318,19 +365,14 @@ class _EmailPageState extends State<EmailPage> {
                       ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => RansomNotePage()),
-                          );
-                        },
+                        onPressed: _isSending ? null : sendPhishingEmail,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
-                          padding:
-                              EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
                         ),
-                        child: Text('Proceed'),
+                        child: _isSending
+                            ? CircularProgressIndicator(color: Colors.white)
+                            : Text('Proceed'),
                       ),
                     ],
                   ),
@@ -391,6 +433,7 @@ class _EmailPageState extends State<EmailPage> {
     );
   }
 }
+
 
 class RansomNotePage extends StatefulWidget {
   const RansomNotePage({super.key});
@@ -471,6 +514,7 @@ class _RansomNotePageState extends State<RansomNotePage> {
   }
 
   void _simulateBackup() {
+    restoreBackup();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

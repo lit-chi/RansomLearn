@@ -3,7 +3,11 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-require("dotenv").config(); // Load environment variables from .env file
+const nodemailer = require("nodemailer");
+console.log("Email User:", process.env.EMAIL_USER);
+console.log("Email Pass:", process.env.EMAIL_PASS);
+
+require("dotenv").config(); // Load environment variables
 
 const app = express();
 const PORT = 5000;
@@ -13,7 +17,7 @@ app.use(express.json());
 app.use(cors());
 
 // MongoDB Connection
-mongoose.connect("mongodb://127.0.0.1:27017/ransomlearn", {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -29,7 +33,58 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model("User", userSchema);
 
 // Secret key for JWT (Ensure this is in .env for security)
-const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key"; // Use environment variable or fallback
+const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
+
+// Configure Email Sending
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER, // Gmail address
+    pass: process.env.EMAIL_PASS, // App password
+  },
+});
+
+// Function to send phishing email
+async function sendPhishingEmail(targetEmail) {
+  const mailOptions = {
+    from: '"HR Department" <ransomlearn.hr@gmail.com>',
+    to: targetEmail,
+    subject: "Job Offer - Software Engineer Position",
+    html: `
+      <p>Dear Candidate,</p>
+      <p>We are pleased to inform you that your profile matches our <b>Software Engineer</b> role at <b>XYZ Corp</b>. 
+      Please find the job details in the attached document.</p>
+      <p>Best Regards,<br>HR Team</p>
+    `,
+    /*attachments: [
+      {
+        filename: "Job_Offer_Details.pdf.exe", // Disguised attachment
+        path: "./payload.exe", // Path to ransomware simulator
+      },
+    ],*/
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Phishing email sent to:", targetEmail);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+}
+
+app.post("/send-email", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    await sendPhishingEmail(email);
+    res.json({ message: "Email sent successfully" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Signup Route
 app.post("/signup", async (req, res) => {
