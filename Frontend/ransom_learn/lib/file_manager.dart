@@ -3,12 +3,21 @@ import 'dart:io';
 // Function to get the desktop path based on OS
 String? getDesktopPath() {
   if (Platform.isWindows) {
-    return "${Platform.environment['USERPROFILE']}\\OneDrive\\Desktop"; // Adjusted for OneDrive
+    String userProfile = Platform.environment['USERPROFILE'] ?? "";
+    String oneDriveDesktop = "$userProfile\\OneDrive\\Desktop";
+    String defaultDesktop = "$userProfile\\Desktop";
+
+    if (Directory(oneDriveDesktop).existsSync()) {
+      return oneDriveDesktop; // Use OneDrive if available
+    } else {
+      return defaultDesktop; // Use regular desktop if OneDrive is not found
+    }
   } else if (Platform.isLinux || Platform.isMacOS) {
     return "${Platform.environment['HOME']}/Desktop";
   }
   return null;
 }
+
 
 // Function to create random text files
 void createRandomTextFiles(String folderPath, int count) {
