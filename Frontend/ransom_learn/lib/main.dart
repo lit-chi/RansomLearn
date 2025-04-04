@@ -269,6 +269,7 @@ class EmailPage extends StatefulWidget {
 class _EmailPageState extends State<EmailPage> {
   final TextEditingController _emailController = TextEditingController();
   bool _isSending = false;
+  bool _BackupEnabled = false;
 
   Future<void> sendPhishingEmail() async {
     if (_emailController.text.isEmpty) {
@@ -308,8 +309,11 @@ class _EmailPageState extends State<EmailPage> {
       if (File(ransomNotePath).existsSync()) {
           Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => RansomNotePage()),
+          MaterialPageRoute(
+            builder: (context) => RansomNotePage(BackupEnabled: _BackupEnabled),
+          ),
         );
+
           timer.cancel(); // Stop checking after detecting the note
         }
       });
@@ -321,116 +325,141 @@ class _EmailPageState extends State<EmailPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Target Email',
-          style: TextStyle(color: Colors.white), // White text color
-        ),
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Colors.white, // White back arrow
-          ),
-          onPressed: () {
-            Navigator.pop(context); // This will take you back to the previous page
-          },
-        ),
-        backgroundColor: Color.fromARGB(255, 240, 74, 24), 
-        elevation: 0, // Remove shadow for a flat look
-        toolbarHeight: 50, // Adjust height of the AppBar (default is 56)
+
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(
+        'Target Email',
+        style: TextStyle(color: Colors.white),
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/back2.jpg',
-            fit: BoxFit.cover,
-          ),
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      infoCard(
-                        'Email Simulation Triggered',
-                        'A phishing email is being sent to the address provided. This simulates how attackers initiate phishing attempts.',
-                      ),
-                      infoCard(
-                        'Risk of Clicking Malicious Links',
-                        'Clicking on malicious links may download ransomware, which can encrypt your files and lock access to your data.',
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 350,
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Enter Your Email',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      TextField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          labelStyle: TextStyle(color: Colors.white),
-                        ),
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _isSending ? null : sendPhishingEmail,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
-                        ),
-                        child: _isSending
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text('Proceed'),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      infoCard(
-                        'Ransom Note Delivered',
-                        'A ransom note appears, demanding payment to unlock your files. Paying the ransom is risky and doesn’t guarantee that your data will be restored.',
-                      ),
-                      infoCard(
-                        'Potential Data Encryption',
-                        'If ransomware is installed, it encrypts your data, demanding payment to restore access.',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
       ),
-    );
-  }
+      backgroundColor: Color.fromARGB(255, 240, 74, 24),
+      elevation: 0,
+      toolbarHeight: 50,
+    ),
+    body: Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset('assets/back2.jpg', fit: BoxFit.cover),
+        Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    infoCard(
+                      'Email Simulation Triggered',
+                      'A phishing email is being sent to the address provided. This simulates how attackers initiate phishing attempts.',
+                    ),
+                    infoCard(
+                      'Risk of Clicking Malicious Links',
+                      'Clicking on malicious links may download ransomware, which can encrypt your files and lock access to your data.',
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 350,
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enter Your Email',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    SizedBox(height: 20),
+
+                    // 🔘 Enable Backup Switch
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Enable Backup',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                        Switch(
+                          value: _BackupEnabled,
+                          onChanged: (value) async {
+                            setState(() {
+                              _BackupEnabled = value;
+                            });
+
+                            if (_BackupEnabled) {
+                              createBackupFiles(); // From file_manager.dart
+                            } else {
+                              await deleteBackupFiles(); // From file_manager.dart
+                            }
+                          },
+                          activeColor: Colors.green,
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 20),
+
+                    ElevatedButton(
+                      onPressed: _isSending ? null : sendPhishingEmail,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+                      ),
+                      child: _isSending
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text('Proceed'),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    infoCard(
+                      'Ransom Note Delivered',
+                      'A ransom note appears, demanding payment to unlock your files. Paying the ransom is risky and doesn’t guarantee that your data will be restored.',
+                    ),
+                    infoCard(
+                      'Potential Data Encryption',
+                      'If ransomware is installed, it encrypts your data, demanding payment to restore access.',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget infoCard(String title, String content) {
     return Container(
@@ -468,11 +497,14 @@ class _EmailPageState extends State<EmailPage> {
 
 
 class RansomNotePage extends StatefulWidget {
-  const RansomNotePage({super.key});
+  final bool BackupEnabled;
+
+  const RansomNotePage({super.key, required this.BackupEnabled}); 
 
   @override
   _RansomNotePageState createState() => _RansomNotePageState();
 }
+
 
 
 class _RansomNotePageState extends State<RansomNotePage> {
@@ -675,21 +707,28 @@ class _RansomNotePageState extends State<RansomNotePage> {
               ),
             ),
           ),
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: ElevatedButton(
-                onPressed: _simulateBackup,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
-                ),
-                child: Text('Backup'),
-              ),
-            ),
+    if (_timeLeft == 0 && widget.BackupEnabled)
+    Positioned(
+      bottom: 30,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            restoreBackup(); // Calls restore function from file_manager.dart
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Backup restored successfully!")),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blueAccent,
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
           ),
+          child: Text('Restore Backup'),
+        ),
+      ),
+    )
+
         ],
       ),
     );

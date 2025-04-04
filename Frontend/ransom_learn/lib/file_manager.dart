@@ -1,6 +1,13 @@
 import 'dart:io';
 
-// Function to get the desktop path based on OS
+// ===== Global Paths Setup =====
+final String? desktopPath = getDesktopPath();
+final String ransomwareFolder = '$desktopPath\\RansomLearn';
+final String filesPath = '$ransomwareFolder\\Files';
+final String backupPath = '$ransomwareFolder\\Backup';
+final String keyPath = '$ransomwareFolder\\Key';
+
+// ===== Desktop Path Utility =====
 String? getDesktopPath() {
   if (Platform.isWindows) {
     String userProfile = Platform.environment['USERPROFILE'] ?? "";
@@ -8,9 +15,9 @@ String? getDesktopPath() {
     String defaultDesktop = "$userProfile\\Desktop";
 
     if (Directory(oneDriveDesktop).existsSync()) {
-      return oneDriveDesktop; // Use OneDrive if available
+      return oneDriveDesktop;
     } else {
-      return defaultDesktop; // Use regular desktop if OneDrive is not found
+      return defaultDesktop;
     }
   } else if (Platform.isLinux || Platform.isMacOS) {
     return "${Platform.environment['HOME']}/Desktop";
@@ -18,8 +25,7 @@ String? getDesktopPath() {
   return null;
 }
 
-
-// Function to create random text files
+// ===== File Generators & Setup =====
 void createRandomTextFiles(String folderPath, int count) {
   for (int i = 1; i <= count; i++) {
     File file = File('$folderPath\\file$i.txt');
@@ -27,20 +33,14 @@ void createRandomTextFiles(String folderPath, int count) {
   }
 }
 
-// Function to set up the RansomLearn environment (Always replaces existing files)
 void setupRansomLearnEnvironment() {
-  String? desktopPath = getDesktopPath();
   if (desktopPath == null) {
     print("Error: Could not find desktop path.");
     return;
   }
 
-  String ransomwareFolder = '$desktopPath\\RansomLearn';
-  List<String> subfolders = ['Files', 'Backup', 'Key'];
-
   Directory mainDir = Directory(ransomwareFolder);
 
-  // Delete existing folder and recreate it
   if (mainDir.existsSync()) {
     mainDir.deleteSync(recursive: true);
     print('Existing RansomLearn folder deleted.');
@@ -48,37 +48,79 @@ void setupRansomLearnEnvironment() {
   mainDir.createSync();
   print('Created new RansomLearn folder.');
 
-  for (String subfolder in subfolders) {
-    Directory('${mainDir.path}\\$subfolder').createSync();
+  for (String subfolder in ['Files', 'Backup', 'Key']) {
+    Directory('$ransomwareFolder\\$subfolder').createSync();
   }
-  print('Subfolders created successfully.');
 
-  // Create random text files in the Files folder
-  String filesPath = '$ransomwareFolder\\Files';
-  createRandomTextFiles(filesPath, 5); // Create 5 random text files
+  createRandomTextFiles(filesPath, 5);
   print('Random text files created.');
-
-  // Copy text files to Backup folder
-  String backupPath = '$ransomwareFolder\\Backup';
-  Directory(filesPath).listSync().forEach((file) {
-    if (file is File) {
-      file.copySync('$backupPath\\${file.uri.pathSegments.last}');
-    }
-  });
-  print('Backup files created.');
 }
 
-// Function to restore files from Backup to Files (overwrite existing files)
-void restoreBackup() {
-  String? desktopPath = getDesktopPath();
+// ===== Backup Handlers =====
+void createBackupFiles() {
   if (desktopPath == null) {
     print("Error: Could not find desktop path.");
     return;
   }
 
-  String ransomwareFolder = '$desktopPath\\RansomLearn';
-  String backupPath = '$ransomwareFolder\\Backup';
-  String filesPath = '$ransomwareFolder\\Files';
+  Directory filesDir = Directory(filesPath);
+  Directory backupDir = Directory(backupPath);
+
+  if (!filesDir.existsSync()) {
+    print("Error: Files folder not found.");
+    return;
+  }
+
+  if (!backupDir.existsSync()) {
+    backupDir.createSync();
+  }
+
+  // Clear old backup
+  backupDir.listSync().forEach((file) {
+    if (file is File) {
+      file.deleteSync();
+    }
+  });
+
+  filesDir.listSync().forEach((file) {
+    if (file is File) {
+      file.copySync('$backupPath\\${file.uri.pathSegments.last}');
+    }
+  });
+
+  print("✅ Backup files created.");
+}
+
+Future<void> deleteBackupFiles() async {
+  if (desktopPath == null) {
+    print("Error: Could not find desktop path.");
+    return;
+  }
+
+  final backupDir = Directory(backupPath);
+
+  if (await backupDir.exists()) {
+    final files = backupDir.listSync();
+    for (final file in files) {
+      try {
+        if (file is File) {
+          await file.delete();
+        } else if (file is Directory) {
+          await file.delete(recursive: true);
+        }
+      } catch (e) {
+        print("❌ Error deleting backup file: $e");
+      }
+    }
+    print("🗑️ Backup files deleted.");
+  }
+}
+
+void restoreBackup() {
+  if (desktopPath == null) {
+    print("Error: Could not find desktop path.");
+    return;
+  }
 
   Directory backupDir = Directory(backupPath);
   Directory filesDir = Directory(filesPath);
@@ -93,19 +135,17 @@ void restoreBackup() {
     filesDir.createSync();
   }
 
-  // Delete all existing files in Files folder
   filesDir.listSync().forEach((file) {
     if (file is File) {
       file.deleteSync();
     }
   });
 
-  // Copy backup files to Files folder (overwrite)
   backupDir.listSync().forEach((file) {
     if (file is File) {
       file.copySync('$filesPath\\${file.uri.pathSegments.last}');
     }
   });
 
-  print("Backup successfully restored!");
+  print("✅ Backup successfully restored!");
 }
